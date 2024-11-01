@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:object_detection_ai/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +20,23 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? _image;
   String _response = "";
   final ImagePicker _picker = ImagePicker();
+  final FlutterTts _flutterTts = FlutterTts();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeTts();
+  }
+
+  Future<void> speakText(String text) async {
+    await _flutterTts.speak(text);
+  }
+
+  void _initializeTts() {
+    _flutterTts.setLanguage("en-US"); // Set language to English
+    _flutterTts.setPitch(1.0); // Set pitch for voice
+    _flutterTts.setSpeechRate(0.5); // Set speech rate for readability
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -36,7 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
         final gemini = Gemini.instance;
 
         gemini.textAndImage(
-          text: "What is this picture?", // Customize your prompt
+          text:
+              "What is this picture? , Explain it like you are explaining to a blind man.", // prompt
           images: [file.readAsBytesSync()], // Convert image to byte data
         ).then((value) {
           setState(() {
@@ -44,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _response = value?.content?.parts?.last.text ?? 'No response';
           });
           log(_response);
+          speakText(_response); // Trigger TTS for the response
         }).catchError((e) {
           log('Error processing image', error: e);
           setState(() {
@@ -59,6 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _response = 'Error selecting image';
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
   }
 
   @override
